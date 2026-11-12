@@ -1,6 +1,26 @@
 # Week 5 assignment — Put a limit on the tunnel
 
-Student ID (last 4 digits only): **NNNN**
+Student ID (last 4 digits only): **4077**
+
+## Lab wrap-up answers
+
+1. Two changes that can be made without recompiling are adding or modifying table
+   entries and changing action parameters such as output ports. Changes that need a
+   new program include changing header definitions or parser states, and adding or
+   changing actions or control logic.
+
+2. The packet reached h3 because its tunnel `dst_id` was 3, and s2's tunnel table
+   mapped exit 3 to port 3. It still carried the tunnel header because the
+   deparser emitted the valid `myTunnel` header.
+
+3. Tunnel forwarding uses `myTunnel_forward`, which does not decrement the IPv4
+   TTL, so the packet arrived with TTL 64. Normal IPv4 forwarding decrements the
+   TTL at each switch, which is why the ping replies had TTL 62.
+
+4. The compiler caught syntax errors such as the extra closing brace. It did not
+   catch the missing tunnel-header emission: that was valid P4 but produced a
+   malformed packet. This shows that P4 programs require packet and switch-log
+   testing in addition to compilation.
 
 Write each section in your own words, about your own runs. Quote the evidence files in
 `assignment/evidence/` that support each point. Delete the instructions in `<!-- -->` as you go.
