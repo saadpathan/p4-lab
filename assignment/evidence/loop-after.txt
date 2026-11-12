@@ -1,0 +1,17 @@
+C4 — tunnel loop after hop limit
+
+Commands:
+sh ./p4cli s2 "table_modify MyIngress.myTunnel_exact MyIngress.myTunnel_forward 2 1"
+h1 python3 send.py 10.77.0.3 "loop after" --tunnel 3 --hops 4
+
+Relevant switch log sequence:
+s1: received, decremented and forwarded
+s2: received, decremented and forwarded
+s1: received, decremented and forwarded
+s2: received, decremented and forwarded
+s1: received with hop_limit 0 and executed mark_to_drop
+
+The packet crossed four switches successfully (two visits to each switch),
+then was dropped on the fifth switch processing event. This matches the
+design: a starting limit of 4 permits four crossings, and the next switch
+drops the packet when the incoming limit is zero.

@@ -1,0 +1,22 @@
+C1 — tunnel loop before hop limit
+
+Commands:
+sh ./p4cli s2 table_dump MyIngress.myTunnel_exact
+sh ./p4cli s2 "table_modify MyIngress.myTunnel_exact MyIngress.myTunnel_forward 2 1"
+h1 python3 send.py 10.77.0.3 "loop" --tunnel 3
+sh grep -c "Processing packet received" logs/s1.txt logs/s2.txt
+sh sleep 5; grep -c "Processing packet received" logs/s1.txt logs/s2.txt
+
+The table dump showed exit 3 at handle 0x2. The table modification changed
+that entry's output port from 3 to 1.
+
+Output shortly after sending:
+logs/s1.txt:315
+logs/s2.txt:313
+
+Output five seconds later:
+logs/s1.txt:804
+logs/s2.txt:801
+
+The counts continued increasing, showing that the packet looped between s1
+and s2 and did not stop by itself.

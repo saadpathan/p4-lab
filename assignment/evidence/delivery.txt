@@ -1,0 +1,15 @@
+C4 — delivery and plain IPv4
+
+Commands:
+h1 python3 send.py 10.77.0.2 "delivery h2" --tunnel 2 --hops 4
+h1 python3 send.py 10.77.0.3 "delivery h3" --tunnel 3 --hops 4
+h1 ping -c 2 10.77.0.3
+
+Receiver output:
+Received (tunnelled, dst_id=2, hop_limit=2) from 10.77.0.1 to 10.77.0.2, TTL 64: 'delivery h2'
+Received (tunnelled, dst_id=3, hop_limit=2) from 10.77.0.1 to 10.77.0.3, TTL 64: 'delivery h3'
+
+Plain IPv4 output:
+64 bytes from 10.77.0.3: icmp_seq=1 ttl=62 time=18.2 ms
+64 bytes from 10.77.0.3: icmp_seq=2 ttl=62 time=6.98 ms
+2 packets transmitted, 2 received, 0% packet loss

@@ -1,0 +1,44 @@
+Mixed rollout experiment (s1=tunnel.p4, s2=tunnel_v1.p4)
+
+Prediction written in REPORT.md before sending:
+s2 would extract only proto_id and dst_id, start IPv4 parsing one byte early
+at hop_limit, but still use its valid old tunnel header and tunnel table to
+forward. I predicted that h2 would receive a malformed one-byte-shifted
+packet, and that the old switch would not consume the new hop limit.
+
+Delivery packet sent from h1:
+  python3 send.py 10.77.0.2 mixed-delivery --tunnel 2 --hops 4
+The sender's tunnel bytes were:
+  12 12 00 02 04
+The packet did not produce a new decoded line in logs/h2.txt. An unfiltered
+capture at h2 showed that bytes did arrive, but they were malformed:
+
+  13:33:09.505425 00:00:00:00:00:01 > ff:ff:ff:ff:ff:ff,
+  ethertype Unknown (0x1212), length 60
+  0000: ffff ffff ffff 0000 0000 0001 1212
+  0010: 0002 0345 0000 2900 0100 0040 1066 270a
+  0020: 4d00 010a 4d00 0210 e110 e100 15d1 206d
+  0030: 6978 6564 2d63 6170 7475 7265
+
+The important bytes are 12 12 00 02 03 45 ...: old s2 emitted its
+four-byte tunnel header (12 12 00 02), then emitted an IPv4 header whose
+first byte was the new hop byte 03. The new h2 decoder consumes that 03 as
+hop_limit and starts IPv4 at 45, but the old deparser emitted only 03 plus
+the first 19 bytes of the original IPv4 header. The IP header is therefore
+short by one byte and its payload boundaries are wrong, so the UDP/IP packet
+is no longer decodable. This is why delivery failed even though s2 forwarded
+to port 2. logs/s2.txt records Bytes parsed: 18 and 38, then dst_id=0002 and
+egress port 2.
+
+Loop test:
+I changed s2's dst_id=2 entry to port 1, then sent
+  python3 send.py 10.77.0.2 mixed-loop --tunnel 2 --hops 4
+No packet reached h2. logs/s2.txt shows the old switch repeatedly parsed
+18/38 bytes and forwarded to port 1. logs/s1.txt shows the new switch
+parsed 19/39 bytes and forwarded back to s2 for five processing events;
+on the sixth event its parsed hop limit was zero, so it selected egress 511
+and dropped the packet. The new hop limit therefore still stopped this
+particular loop, but only because the new s1 was traversed repeatedly;
+the old s2 neither parsed nor decremented that byte.
+
+After the test, I restored s2's dst_id=2 entry to port 2.
